@@ -1,0 +1,89 @@
+apiVersion: v1
+baseDomain: ${base_domain}
+metadata:
+  name: ${cluster_name}
+networking:
+  machineNetwork:
+  - cidr: ${public_network}
+  networkType: OVNKubernetes
+compute:
+- name: worker
+  replicas: ${worker_replicas}
+controlPlane:
+  name: master
+  replicas: ${master_replicas}
+  platform:
+    baremetal: {}
+platform:
+  baremetal:
+    apiVIPs:
+      - ${api_vip}
+    ingressVIPs:
+      - ${ingress_vip}
+    bootstrapExternalStaticIP: ${bootstrap_ip}
+    bootstrapExternalStaticGateway: ${default_gw}
+    hosts:
+    %{ for i, master in masters ~}
+- name: openshift-master-${i}
+      role: master
+      bmc:
+        address: ipmi://${bmc_ip}:6${master.vmid}
+        username: admin
+        password: admin
+      rootDeviceHints:
+        deviceName: "/dev/sda"
+      bootMACAddress: ${lower(master.boot_mac)}
+      networkConfig:
+        interfaces:
+        - name: ens19
+          type: ethernet
+          state: up
+          ipv4:
+            address:
+            - ip: ${master.ip}
+              prefix-length: ${master.prefix}
+            enabled: true
+        dns-resolver:
+          config:
+            server:
+            - ${dns_ip}
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: ${default_gw}
+            next-hop-interface: ens19
+    %{ endfor ~}
+
+    %{ for i, worker in workers ~}
+- name: openshift-worker-${i}.${cluster_name}.${base_domain}
+      role: worker
+      bmc:
+        address: ipmi://${bmc_ip}:6${worker.vmid}
+        username: admin
+        password: admin
+      rootDeviceHints:
+        deviceName: "/dev/sda"
+      bootMACAddress: ${lower(worker.boot_mac)}
+      networkConfig:
+        interfaces:
+        - name: ens19
+          type: ethernet
+          state: up
+          ipv4:
+            address:
+            - ip: ${worker.ip}
+              prefix-length: ${worker.prefix}
+            enabled: true
+        dns-resolver:
+          config:
+            server:
+            - ${dns_ip}
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: ${default_gw}
+            next-hop-interface: ens19
+    %{ endfor ~}
+
+pullSecret: '${pull_secret}'
+sshKey: '${ssh_public_key}'

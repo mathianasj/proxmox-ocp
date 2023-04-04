@@ -1,0 +1,60 @@
+---
+- name: Wait for bmc host to be ready
+  hosts: bmc
+  gather_facts: false
+
+  tasks:
+    - name: Wait for host
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        sleep: 10     # check every 10 seconds
+        timeout: 604800  # exit after 7 days
+      delegate_to: localhost
+
+- name: Init virtual bmc
+  hosts: bmc
+  remote_user: root
+
+  tasks:
+    - name: Update System
+      ansible.builtin.yum:
+        name: "*"
+        state: latest
+    - name: Install python
+      ansible.builtin.yum:
+        name:
+          - python3-pip
+          - python3-virtualenv
+          - git
+        state: present
+    - name: Checkout proxmoxbmc
+      ansible.builtin.git:
+        repo: 'https://github.com/agnon/proxmoxbmc.git'
+        dest: "/root/proxmoxbmc"
+    - name: Upgrade pip
+      ansible.builtin.pip:
+        name: pip
+        virtualenv: /root/proxmoxbmc/.env
+        chdir: /root/proxmoxbmc
+        state: latest
+    - name: Configure proxmoxbmc virtualenv
+      ansible.builtin.pip:
+        requirements: /root/proxmoxbmc/requirements.txt
+        virtualenv: /root/proxmoxbmc/.env
+        chdir: /root/proxmoxbmc
+    - name: Activate proxmoxbmc
+      ansible.builtin.shell:
+        cmd: . .env/bin/activate && python -m setup install 
+        chdir: /root/proxmoxbmc
+      register: vagrant
+    - name: Install proxmoxbmc service
+      ansible.builtin.copy:
+        src: pbmcd.service
+        dest: /etc/systemd/system/pbmcd.service
+    - name: Enable and start pbmcd
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: true
+        enabled: true
+        name: pbmcd

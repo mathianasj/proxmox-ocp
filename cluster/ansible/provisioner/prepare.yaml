@@ -1,0 +1,260 @@
+---
+- name: Wait for provisioner host to be ready
+  hosts: provisioner
+  gather_facts: false
+
+  tasks:
+    - name: Wait for host
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        sleep: 10     # check every 10 seconds
+        timeout: 604800  # exit after 7 days
+      delegate_to: localhost
+
+- name: Prepare and start openshift install
+  hosts: provisioner
+  remote_user: cloud-user
+
+  tasks:
+    - name: Add user
+      ansible.builtin.user:
+        name: kni
+      become: true
+    - name: User sudoers
+      community.general.sudoers:
+        name: allow all
+        state: present
+        user: kni
+        commands: ALL
+        nopassword: true
+      become: true
+    - name: Configure provisioning network
+      ansible.builtin.shell:
+        cmd: >
+          nohup bash -c "
+            nmcli con down \"cloud-init eth0\"
+            nmcli con delete \"cloud-init eth0\"
+            nmcli connection add ifname provisioning type bridge con-name provisioning
+            nmcli con add type bridge-slave ifname \"eth0\" master provisioning
+            nmcli connection modify provisioning ipv6.addresses fd00:1101::1/64 ipv6.method manual
+            nmcli connection modify provisioning ipv4.addresses 172.22.0.254/24 ipv4.method manual
+            nmcli con down provisioning
+            nmcli con up provisioning
+          "
+      become: true
+      when: "'provisioning' not in ansible_facts.interfaces"
+    - name: Configure baremetal network
+      ansible.builtin.shell:
+        cmd: >
+          nohup bash -c "
+            nmcli con down \"cloud-init eth1\"
+            nmcli con delete \"cloud-init eth1\"
+            nmcli connection add ifname baremetal type bridge con-name baremetal
+            nmcli con add type bridge-slave ifname \"eth1\" master baremetal
+            nmcli connection modify baremetal ipv4.addresses {{ bootstrap_cidr }} ipv4.method manual ipv4.gateway {{ public_gateway }} ipv4.dns {{ dns_server }}
+            nmcli con down baremetal
+            nmcli con up baremetal
+          "
+      become: true
+      when: "'baremetal' not in ansible_facts.interfaces"
+    - name: Enable EPEL Repository on CentOS 9
+      dnf:
+        name: epel-release
+        state: latest
+      become: True
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts ['distribution_major_version'] == '8'
+    - name: Install deps
+      ansible.builtin.dnf:
+        name:
+          - libvirt
+          - qemu-kvm
+          # - mkisofs
+          - genisoimage
+          - python3-devel
+          - jq
+          - ipmitool
+          - firewalld
+          - python3-libvirt
+          - python3-lxml
+          - screen
+        state: latest
+      become: true
+    - name: Add user to libvirt
+      ansible.builtin.user:
+        name: kni
+        groups: libvirt
+      become: true
+    - name: Configure firewalld (http)
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        zone: public
+      become: true
+    - name: Configure firewalld (ssh)
+      ansible.posix.firewalld:
+        service: ssh
+        permanent: true
+        state: enabled
+        zone: public
+      become: true
+    - name: Enable firewalld service
+      ansible.builtin.systemd:
+        state: restarted
+        enabled: true
+        daemon_reload: true
+        name: firewalld
+      become: true
+    - name: Enable libvirtd service
+      ansible.builtin.systemd:
+        state: started
+        enabled: true
+        daemon_reload: true
+        name: libvirtd
+      become: true
+    - name: Define storage pool
+      community.libvirt.virt_pool:
+        command: define
+        name: default
+        xml: "{{ lookup('file', 'libvirtpool.xml') }}"
+      # become_user: kni
+      become: true
+    - name: Gather storage pool facts
+      community.libvirt.virt_pool:
+        command: facts
+      become: true
+    - name: Print storage pool facts
+      ansible.builtin.debug:
+        msg: facts {{ ansible_libvirt_pools }}
+      # become_user: kni
+      become: true
+    - name: Start storage pool
+      community.libvirt.virt_pool:
+        command: start
+        name: default
+      # become_user: kni
+      become: true
+      when: ansible_libvirt_pools.default.status != 'running'
+    - name: Set storage pool autostart
+      community.libvirt.virt_pool:
+        autostart: true
+        name: default
+      # become_user: kni
+      become: true
+    - name: Download openshift client
+      ansible.builtin.get_url:
+        url: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/openshift-client-linux.tar.gz
+        dest: /home/kni/openshift-client-linux.tar.gz
+      become_user: kni
+      when: release_type == "ocp"
+    # - name: Get the version name for OKD
+    #   ansible.builtin.shell: curl -s https://api.github.com/repos/okd-project/okd/releases/latest | jq -r '.name'
+    #   become_user: kni
+    #   become: true
+    #   when: release_type == "okd"
+    #   register: okd_release_name
+    # - set_fact:
+    #     okd_release_name={{ okd_release_name.stdout }}
+    #   when: release_type == "okd"
+    - name: Download okd client
+      ansible.builtin.get_url:
+        url: "https://github.com/okd-project/okd/releases/download/{{ okd_release_name }}/openshift-client-linux-{{ okd_release_name }}.tar.gz"
+        dest: /home/kni/openshift-client-linux.tar.gz
+      when: release_type == "okd"
+      become: true
+    - name: Download okd client
+      ansible.builtin.get_url:
+        url: "https://github.com/okd-project/okd-scos/releases/download/{{ okd_release_name }}/openshift-client-linux-{{ okd_release_name }}.tar.gz"
+        dest: /home/kni/openshift-client-linux.tar.gz
+      when: release_type == "okd-scos"
+      become: true
+    # - name: Get the release image for OKD
+    #   ansible.builtin.shell: "curl -L -s https://github.com/okd-project/okd/releases/download/{{ okd_release_name }}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}'"
+    #   become_user: kni
+    #   become: true
+    #   when: release_type == "okd"
+    #   register: okd_release_image
+    - name: Get the release image for OCP
+      ansible.builtin.shell: "curl -L -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}'"
+      become_user: kni
+      become: true
+      when: release_type == "ocp"
+      register: ocp_release_image
+    - set_fact:
+        release_image={{ ocp_release_image.stdout if release_type == 'ocp' else okd_release_image }}
+    - name: Print release image
+      ansible.builtin.debug:
+        msg: "{{ release_image }}"
+    - name: Extract openshift client
+      ansible.builtin.unarchive:
+        src: /home/kni/openshift-client-linux.tar.gz
+        dest: /home/kni
+        remote_src: true
+      # become_user: kni
+      become: true
+    - name: Move oc cli
+      ansible.builtin.copy:
+        src: /home/kni/oc
+        dest: /usr/bin
+        remote_src: true
+        mode: '0755'
+      become: true
+    - name: Copy pull-secret
+      ansible.builtin.copy:
+        src: pull-secret.txt
+        dest: /home/kni/pull-secret.txt
+        owner: kni
+      become: true
+    - name: Extract openshift-baremetal-installer
+      ansible.builtin.shell:
+        cmd: oc adm release extract --registry-config /home/kni/pull-secret.txt --command=openshift-baremetal-install --to /home/kni {{ release_image }}
+      # become_user: kni
+      become: true
+    - name: Move openshift-baremetal-installer cli
+      ansible.builtin.copy:
+        src: /home/kni/openshift-baremetal-install
+        dest: /usr/bin
+        remote_src: true
+        mode: '0755'
+      become: true
+    - name: Create install-config directory
+      ansible.builtin.file:
+        path: /home/kni/install-config
+        state: directory
+        owner: kni
+      become: true
+      # become_user: kni
+    - name: Copy install-config
+      ansible.builtin.copy:
+        src: "{{ cluster_name }}_install-config.yaml"
+        dest: /home/kni/install-config/install-config.yaml
+        owner: kni
+      become: true
+      # become_user: kni
+    - name: Create manifests
+      ansible.builtin.shell:
+        cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create manifests
+      become: true
+      # become_user: kni
+      # become_method: su
+    - name: Create ignition-configs
+      ansible.builtin.shell:
+        cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create ignition-configs
+      become: true
+    - name: Create cluster
+      ansible.builtin.shell:
+        cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create cluster
+      become: true
+    - name: Copy kubeconfig
+      ansible.builtin.fetch:
+        src: /home/kni/install-config/auth/kubeconfig
+        dest: ./clusters/{{ cluster_name }}/kubeconfig
+        flat: true
+      become: true
+    - name: Copy kubeadmin-password
+      ansible.builtin.fetch:
+        src: /home/kni/install-config/auth/kubeadmin-password
+        dest: ./clusters/{{ cluster_name }}/kubeadmin-password
+        flat: true
+      become: true

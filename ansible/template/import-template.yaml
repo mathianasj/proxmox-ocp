@@ -1,0 +1,22 @@
+---
+- name: Import fedora vm template
+  hosts: proxmox
+  remote_user: root
+
+  tasks:
+  - name: Download qcow image
+    ansible.builtin.get_url:
+      url: "{{ template_url }}"
+      dest: /tmp/Fedora-Cloud-Base-35-1.2.x86_64.qcow2
+  - name: Import disk
+    ansible.builtin.shell:
+      cmd: qm importdisk {{ vmid }} /tmp/Fedora-Cloud-Base-35-1.2.x86_64.qcow2 {{ template_storage }}
+  - name: Rescan
+    ansible.builtin.shell:
+      cmd: qm set {{ vmid }} --scsi0 {{ template_storage }}:{{ vmid }}/vm-{{ vmid }}-disk-0.raw,discard=on
+  - name: Convert to template
+    ansible.builtin.shell:
+      cmd: qm template {{ vmid }}
+  - name: Cleanup
+    ansible.builtin.shell:
+      cmd: rm /tmp/Fedora-Cloud-Base-35-1.2.x86_64.qcow2
