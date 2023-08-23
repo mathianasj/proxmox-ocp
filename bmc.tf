@@ -1,7 +1,7 @@
 resource "proxmox_lxc" "bmc" {
   target_node   = var.bmc_node
   hostname      = "bmc"
-  ostemplate    = var.bmc_template
+  ostemplate    = "${var.template_storage}:vztmpl/bmc_base.tar.gz"
   password      = var.bmc_password
   unprivileged  = true
   start         = true

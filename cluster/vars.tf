@@ -83,12 +83,17 @@ variable "release_type" {
 
 variable "okd_release_name" {
   type = string
-  default = "4.12.0-0.okd-2023-03-18-084815"
+  default = "4.13.0-0.okd-2023-06-24-145750"
 }
 
 variable "okd_release_image" {
   type = string
-  default = "quay.io/openshift/okd@sha256:7153ed89133eeaca94b5fda702c5709b9ad199ce4ff9ad1a0f01678d6ecc720f"
+  default = "quay.io/openshift/okd@sha256:873c173b9ccb1f78bf2c5aa285227259c373191a722bcc3915375006903088a5"
+}
+
+variable "okd_version" {
+  type = string
+  default = "stable-4.13"
 }
 
 variable "base_domain" {

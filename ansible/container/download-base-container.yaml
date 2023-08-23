@@ -1,0 +1,22 @@
+---
+- name: Create bmc container template
+  hosts: proxmox
+  remote_user: root
+
+  tasks:
+  # - name: Download lxc image
+    # ansible.builtin.get_url:
+    #   url: "{{ template_url }}"
+    #   dest: /tmp/Fedora-Cloud-Base-35-1.2.x86_64.qcow2
+  - name: Download container template
+    ansible.builtin.shell:
+      cmd: pveam download {{ template_storage }} {{ bmc_lxc_template }}
+  # - name: Create temporary container to enable ssh
+  #   ansible.builtin.shell:
+  #     cmd: 
+  # - name: Install ssh
+  #   ansible.builtin.shell:
+  #     cmd: dnf install -y openssh-server
+  # - name: Enable sshd at boot
+  #   ansible.builtin.shell:
+  #     cmd: systemctl enable sshd

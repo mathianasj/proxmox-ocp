@@ -2,6 +2,10 @@ variable "bmc_ip" {
     type = string
 }
 
+variable "dns_server" {
+    type = string
+}
+
 variable "bmc_gw" {
     type = string
 }
@@ -34,8 +38,17 @@ variable "bmc_vlan_tag" {
     default = ""
 }
 
-variable "bmc_template" {
-    type = string
+variable "bmc_lxc_template" {
+  type = string
+  default = "fedora-38-default_20230607_amd64.tar.xz"
+}
+
+variable "bmc_lxc_template_ip_cidr" {
+  type = string
+}
+
+variable "bmc_lxc_template_gateway" {
+  type = string
 }
 
 variable "bmc_user" {
@@ -77,7 +90,7 @@ variable "pull_secret" {
 
 variable "fedora_qcow_url" {
   type = string
-  default = "https://nnenix.mm.fcix.net/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2"
+  default = "https://archives.fedoraproject.org/pub/archive/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2"
 }
 
 variable "template_bridge" {

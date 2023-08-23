@@ -24,7 +24,7 @@ resource "proxmox_vm_qemu" "bootstrap" {
 
     disk {
         type = "scsi"
-        storage = "template"
+        storage = var.bootstrap.storage
         size = "40G"
         ssd = 1
     }
@@ -33,7 +33,7 @@ resource "proxmox_vm_qemu" "bootstrap" {
         bridge    = var.bootstrap.provisioner_bridge
         firewall  = false
         link_down = false
-        model     = "e1000"
+        model     = "virtio"
         tag       = var.bootstrap.provisioner_vlan
     }
 
@@ -41,7 +41,7 @@ resource "proxmox_vm_qemu" "bootstrap" {
         bridge    = var.bootstrap.public_bridge
         firewall  = false
         link_down = false
-        model     = "e1000"
+        model     = "virtio"
         tag       = var.bootstrap.public_vlan
     }
 
@@ -110,6 +110,7 @@ resource "local_file" "provisioner_install_config" {
   count = var.bootstrap.enable ? 1 : 0
   content = templatefile("cluster/templates/install-config.yaml",
     {
+      release_type    = var.release_type,
       api_vip         = var.api_vip,
       ingress_vip     = var.ingress_vip,
       bootstrap_ip    = split("/", var.bootstrap.ip_cidr)[0],
@@ -160,6 +161,6 @@ resource "local_file" "provisioner_ansible_inventory" {
     ]
 
     provisioner "local-exec" {
-      command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root -i ./cluster/ansible/${var.cluster_name}_inventory --private-key ./cluster/ansible/${var.cluster_name}_ssh_key -e ocp_version=stable-4.12 -e dns_server='${var.dns_server}' -e release_type=${var.release_type} -e okd_release_name=${var.okd_release_name} -e okd_release_image=${var.okd_release_image} -e cluster_name=${var.cluster_name} -e public_gateway='${var.public_gateway}' -e bootstrap_cidr='${var.bootstrap.host_cidr}' ./cluster/ansible/provisioner/prepare.yaml"
+      command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root -i ./cluster/ansible/${var.cluster_name}_inventory --private-key ./cluster/ansible/${var.cluster_name}_ssh_key -e ocp_version=${var.okd_version} -e dns_server='${var.dns_server}' -e release_type=${var.release_type} -e okd_release_name=${var.okd_release_name} -e okd_release_image=${var.okd_release_image} -e cluster_name=${var.cluster_name} -e public_gateway='${var.public_gateway}' -e bootstrap_cidr='${var.bootstrap.host_cidr}' ./cluster/ansible/provisioner/prepare.yaml"
     }
 }

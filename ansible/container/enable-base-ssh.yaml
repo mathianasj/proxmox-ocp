@@ -1,0 +1,24 @@
+---
+- name: Create bmc container template
+  hosts: proxmox
+  remote_user: root
+
+  tasks:
+  - name: Install ssh
+    ansible.builtin.shell:
+      cmd: pct exec {{ ct_id }} -- /usr/bin/dnf install -y openssh-server
+  - name: Enable sshd at boot
+    ansible.builtin.shell:
+      cmd: pct exec {{ ct_id }} -- /usr/bin/systemctl enable sshd
+  - name: Delete container network
+    ansible.builtin.shell:
+      cmd: pct set {{ ct_id }} --delete net0
+  - name: Create container backup
+    ansible.builtin.shell:
+      cmd: vzdump {{ ct_id }} --mode stop --compress gzip --dumpdir /mnt/pve/{{ template_storage }}/template/cache
+  # - name: Shutdown container
+  #   ansible.builtin.shell:
+  #     cmd: pct stop {{ ct_id }}
+  - name: Rename container backup
+    ansible.builtin.shell:
+      cmd: mv /mnt/pve/{{ template_storage }}/template/cache/vzdump-lxc-{{ ct_id }}-*.tar.gz /mnt/pve/{{ template_storage }}/template/cache/bmc_base.tar.gz

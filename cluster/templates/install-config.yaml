@@ -20,8 +20,15 @@ platform:
       - ${api_vip}
     ingressVIPs:
       - ${ingress_vip}
+%{ if release_type == "okd" ~}
     bootstrapExternalStaticIP: ${bootstrap_ip}
     bootstrapExternalStaticGateway: ${default_gw}
+    bootstrapExternalStaticDNS: ${dns_ip}
+%{ else ~}
+    # bootstrapExternalStaticIP: ${bootstrap_ip}
+    # bootstrapExternalStaticGateway: ${default_gw}
+    # bootstrapExternalStaticDNS: ${dns_ip}
+%{ endif ~}
     hosts:
     %{ for i, master in masters ~}
 - name: openshift-master-${i}

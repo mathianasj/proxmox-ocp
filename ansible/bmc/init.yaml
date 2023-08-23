@@ -25,7 +25,6 @@
       ansible.builtin.yum:
         name:
           - python3-pip
-          - python3-virtualenv
           - git
         state: present
     - name: Checkout proxmoxbmc
@@ -38,6 +37,7 @@
         virtualenv: /root/proxmoxbmc/.env
         chdir: /root/proxmoxbmc
         state: latest
+        virtualenv_command: python3 -m venv
     - name: Configure proxmoxbmc virtualenv
       ansible.builtin.pip:
         requirements: /root/proxmoxbmc/requirements.txt

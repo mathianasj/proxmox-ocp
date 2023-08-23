@@ -34,7 +34,8 @@ module "cluster" {
         provisioner_bridge = each.value.bootstrap.prov_bridge,
         public_bridge = each.value.bootstrap.public_bridge,
         provisioner_vlan = each.value.bootstrap.prov_vlan,
-        public_vlan = each.value.bootstrap.pub_vlan
+        public_vlan = each.value.bootstrap.pub_vlan,
+        storage = each.value.bootstrap.storage
     }
 
     master = each.value.master

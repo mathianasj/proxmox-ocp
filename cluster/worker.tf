@@ -10,12 +10,13 @@ resource "proxmox_vm_qemu" "worker" {
     oncreate = false
     scsihw = "virtio-scsi-pci"
     qemu_os = "l26"
+    cpu = "Westmere-IBRS"
     
     network {
         bridge    = var.bootstrap.provisioner_bridge
         firewall  = false
         link_down = false
-        model     = "e1000"
+        model     = "virtio"
         tag       = var.bootstrap.provisioner_vlan
     }
 
@@ -23,13 +24,13 @@ resource "proxmox_vm_qemu" "worker" {
         bridge    = var.bootstrap.public_bridge
         firewall  = false
         link_down = false
-        model     = "e1000"
+        model     = "virtio"
         tag       = var.bootstrap.public_vlan
     }
 
     disk {
         type = "scsi"
-        storage = "template"
+        storage = var.worker[count.index].storage
         size = "80G"
         ssd = 1
     }
