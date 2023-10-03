@@ -1,0 +1,11 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: creds-github
+  labels:
+    argocd.argoproj.io/secret-type: repo-creds
+stringData:
+  password: {{ .Values.repo.password }}
+  url: {{ .Values.repo.url }}
+  username: {{ .Values.repo.username }}
+type: Opaque

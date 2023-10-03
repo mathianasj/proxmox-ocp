@@ -28,6 +28,17 @@ resource "proxmox_vm_qemu" "worker" {
         tag       = var.bootstrap.public_vlan
     }
 
+    dynamic "network" {
+      for_each = var.worker[count.index].extra_nics
+      content {
+        bridge    = network.value.bridge
+        firewall  = false
+        link_down = false
+        model     = "virtio"
+        tag       = network.value.tag
+      }
+    }
+
     disk {
         type = "scsi"
         storage = var.worker[count.index].storage

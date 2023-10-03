@@ -111,3 +111,41 @@ variable "api_vip" {
 variable "ingress_vip" {
   type = string
 }
+
+variable "enable_gitops" {
+  type = bool
+}
+
+variable "enable_gitops_config" {
+  type = bool
+}
+
+variable "repo_url" {
+  type = string
+  default = ""
+}
+
+variable "repo_username" {
+  type = string
+  default = ""
+}
+
+variable "repo_password" {
+  type = string
+  default = ""
+}
+
+variable "cluster_config_repo_url" {
+  type = string
+  default = ""
+}
+
+variable "aws_cred" {
+  type = string
+  default = ""
+}
+
+variable "aws_vault" {
+  type = string
+  default = ""
+}

@@ -1,0 +1,22 @@
+{{ if .Values.awsvault }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+{{ if .Values.openshiftgitops }}
+    argocd.argoproj.io/managed-by: openshift-gitops
+{{ else }}
+    argocd.argoproj.io/managed-by: argo
+{{ end }}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  namespace: vault
+  name: aws-cred
+data:
+  # You can include additional key value pairs as you do with Opaque Secrets
+  credentials: {{ .Values.awscred }}
+type: Opaque
+{{ end }}

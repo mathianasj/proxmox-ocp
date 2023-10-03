@@ -2,6 +2,15 @@ module "cluster" {
     for_each = var.clusters
     source = "./cluster"
 
+    enable_gitops           = each.value.enable_gitops
+    enable_gitops_config    = each.value.enable_gitops_config
+    aws_cred                = each.value.aws_cred
+    aws_vault               = each.value.aws_vault
+    cluster_config_repo_url = each.value.cluster_config_repo_url
+    repo_password           = each.value.repo_password
+    repo_url                = each.value.repo_url
+    repo_username           = each.value.repo_username
+
     base_domain = each.value.base_domain
     public_network = each.value.public_network
     api_vip = each.value.api_vip

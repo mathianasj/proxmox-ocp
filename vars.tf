@@ -104,3 +104,7 @@ variable "clusters" {
 variable "template_storage" {
   type = string
 }
+
+variable "vm_template_storage" {
+  type = string
+}

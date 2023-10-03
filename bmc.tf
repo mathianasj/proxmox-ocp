@@ -23,6 +23,10 @@ resource "proxmox_lxc" "bmc" {
     ssh_public_keys = <<-EOT
         ${ tls_private_key.bmc.public_key_openssh }
     EOT
+
+  depends_on = [ 
+    null_resource.bmc_template_enable_ssh
+  ]
 }
 
 resource "tls_private_key" "bmc" {

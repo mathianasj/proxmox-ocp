@@ -29,7 +29,7 @@ resource "null_resource" "fedora35_template_import" {
         templatevmid = split("/",proxmox_vm_qemu.fedora35_template.id)[2],
         template = proxmox_vm_qemu.fedora35_template.name,
         template_url = var.fedora_qcow_url,
-        template_storage = var.template_storage
+        template_storage = var.vm_template_storage
     }
 
     provisioner "local-exec" {

@@ -1,0 +1,13 @@
+repo:
+  url: https://github.com
+  username: mathianasj@gmail.com
+  password: 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
+
+clusterconfig:
+  repo:
+    url: https://github.com/idsysapps/cluster-config
+
+openshiftgitops: true
+
+awscred: W2RlZmF1bHRdCmF3c19hY2Nlc3Nfa2V5X2lkID0gQUtJQTZFNloyTE5YS0RCWUdaSEwKYXdzX3NlY3JldF9hY2Nlc3Nfa2V5ID0gRkpCNG5NaVNPTlR1MGhiTnc0ZXlxUkJHSXhPYkVOT0k1OFhURnZMaQ==
+awsvault: true

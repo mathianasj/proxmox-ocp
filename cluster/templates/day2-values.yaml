@@ -1,0 +1,13 @@
+repo:
+  url: ${repo_url}
+  username: ${repo_username}
+  password: ${repo_password}
+
+clusterconfig:
+  repo:
+    url: ${cluster_config_repo_url}
+
+openshiftgitops: ${enable_openshift_gitops}
+
+awscred: ${aws_cred}
+awsvault: ${aws_vault}

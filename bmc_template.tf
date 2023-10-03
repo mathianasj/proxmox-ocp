@@ -28,7 +28,7 @@ resource "proxmox_lxc" "bmc_base_template" {
 
   // Terraform will crash without rootfs defined
   rootfs {
-    storage = var.template_storage
+    storage = var.vm_template_storage
     size    = var.bmc_storage_size
   }
 
