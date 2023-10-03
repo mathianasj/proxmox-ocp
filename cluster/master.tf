@@ -10,7 +10,7 @@ resource "proxmox_vm_qemu" "master" {
     oncreate = false
     scsihw = "virtio-scsi-pci"
     qemu_os = "l26"
-    cpu = "Westmere-IBRS"
+    # cpu = "Westmere-IBRS"
     
     network {
         bridge    = var.bootstrap.provisioner_bridge
