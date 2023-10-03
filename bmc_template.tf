@@ -2,8 +2,7 @@
 
 resource "null_resource" "prepare_bmc_template" {
   depends_on = [
-    local_file.ansible_inventory,
-    proxmox_lxc.bmc_base_template
+    local_file.ansible_inventory
   ]
 
   triggers = {
