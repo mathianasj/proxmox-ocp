@@ -142,12 +142,16 @@
         name: default
       # become_user: kni
       become: true
+    - name: Check for auth
+      stat:
+        path: /home/kni/install-config/auth/kubeconfig
+      register: cluster_init
     - name: Download openshift client
       ansible.builtin.get_url:
         url: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/openshift-client-linux.tar.gz
         dest: /home/kni/openshift-client-linux.tar.gz
       become: true
-      when: release_type == "ocp"
+      when: release_type == "ocp" and not cluster_init.stat.exists
     # - name: Get the version name for OKD
     #   ansible.builtin.shell: curl -s https://api.github.com/repos/okd-project/okd/releases/latest | jq -r '.name'
     #   become_user: kni
@@ -161,13 +165,13 @@
       ansible.builtin.get_url:
         url: "https://github.com/okd-project/okd/releases/download/{{ okd_release_name }}/openshift-client-linux-{{ okd_release_name }}.tar.gz"
         dest: /home/kni/openshift-client-linux.tar.gz
-      when: release_type == "okd"
+      when: release_type == "okd" and not cluster_init.stat.exists
       become: true
     - name: Download okd client
       ansible.builtin.get_url:
         url: "https://github.com/okd-project/okd-scos/releases/download/{{ okd_release_name }}/openshift-client-linux-{{ okd_release_name }}.tar.gz"
         dest: /home/kni/openshift-client-linux.tar.gz
-      when: release_type == "okd-scos"
+      when: release_type == "okd-scos" and not cluster_init.stat.exists
       become: true
     # - name: Get the release image for OKD
     #   ansible.builtin.shell: "curl -L -s https://github.com/okd-project/okd/releases/download/{{ okd_release_name }}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}'"
@@ -177,7 +181,6 @@
     #   register: okd_release_image
     - name: Get the release image for OCP
       ansible.builtin.shell: "curl -L -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}'"
-      become: true
       become: true
       when: release_type == "ocp"
       register: ocp_release_image
@@ -193,6 +196,7 @@
         remote_src: true
       # become_user: kni
       become: true
+      when: not cluster_init.stat.exists
     - name: Move oc cli
       ansible.builtin.copy:
         src: /home/kni/oc
@@ -200,17 +204,20 @@
         remote_src: true
         mode: '0755'
       become: true
+      when: not cluster_init.stat.exists
     - name: Copy pull-secret
       ansible.builtin.copy:
         src: pull-secret.txt
         dest: /home/kni/pull-secret.txt
         owner: kni
       become: true
+      when: not cluster_init.stat.exists
     - name: Extract openshift-baremetal-installer
       ansible.builtin.shell:
         cmd: oc adm release extract --registry-config /home/kni/pull-secret.txt --command=openshift-baremetal-install --to /home/kni {{ release_image }}
       # become_user: kni
       become: true
+      when: not cluster_init.stat.exists
     - name: Move openshift-baremetal-installer cli
       ansible.builtin.copy:
         src: /home/kni/openshift-baremetal-install
@@ -218,6 +225,7 @@
         remote_src: true
         mode: '0755'
       become: true
+      when: not cluster_init.stat.exists
     - name: Create install-config directory
       ansible.builtin.file:
         path: /home/kni/install-config
@@ -225,23 +233,27 @@
         owner: kni
       become: true
       # become_user: kni
+      when: not cluster_init.stat.exists
     - name: Copy install-config
       ansible.builtin.copy:
         src: "{{ cluster_name }}_install-config.yaml"
         dest: /home/kni/install-config/install-config.yaml
         owner: kni
       become: true
+      when: not cluster_init.stat.exists
       # become_user: kni
     - name: Create manifests
       ansible.builtin.shell:
         cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create manifests
       become: true
+      when: not cluster_init.stat.exists
       # become_user: kni
       # become_method: su
     - name: Create ignition-configs
       ansible.builtin.shell:
         cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create ignition-configs
       become: true
+      when: not cluster_init.stat.exists
     - name: Create cluster
       ansible.builtin.shell:
         cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create cluster
