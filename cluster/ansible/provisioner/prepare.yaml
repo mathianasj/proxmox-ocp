@@ -146,6 +146,7 @@
       stat:
         path: /home/kni/install-config/auth/kubeconfig
       register: cluster_init
+      become: true
     - name: Download openshift client
       ansible.builtin.get_url:
         url: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/openshift-client-linux.tar.gz
