@@ -259,6 +259,7 @@
       ansible.builtin.shell:
         cmd: openshift-baremetal-install --dir /home/kni/install-config --log-level debug create cluster
       become: true
+      when: not cluster_init.stat.exists
     - name: Copy kubeconfig
       ansible.builtin.fetch:
         src: /home/kni/install-config/auth/kubeconfig
