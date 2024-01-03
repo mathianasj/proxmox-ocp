@@ -4,6 +4,12 @@
   remote_user: root
 
   tasks:
+  - name: Test reachability to mirrors.centos.org using until
+    ansible.builtin.shell: |
+      until ping -c1 mirrors.centos.org >/dev/null 2>&1; do :; done
+  - name: Pause for 1 minutes for network to settle
+    ansible.builtin.pause:
+      minutes: 1
   - name: Install ssh
     ansible.builtin.shell:
       cmd: pct exec {{ ct_id }} -- /usr/bin/dnf install -y openssh-server
@@ -13,6 +19,9 @@
   - name: Delete container network
     ansible.builtin.shell:
       cmd: pct set {{ ct_id }} --delete net0
+  - name: Remove existing backups
+    ansible.builtin.shell:
+      cmd: rm /mnt/pve/{{ template_storage }}/template/cache/vzdump-lxc-{{ ct_id }}-*.tar.gz
   - name: Create container backup
     ansible.builtin.shell:
       cmd: vzdump {{ ct_id }} --mode stop --compress gzip --dumpdir /mnt/pve/{{ template_storage }}/template/cache
